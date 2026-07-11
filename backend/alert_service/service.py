@@ -1,6 +1,6 @@
 from sqlalchemy import select
 
-from src.models import Alert
+from backend.schemas import Alert
 
 
 async def list_alerts() -> list[Alert]:

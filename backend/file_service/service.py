@@ -5,7 +5,7 @@ from uuid import uuid4
 from fastapi import HTTPException, UploadFile, status
 from sqlalchemy import select
 
-from src.models import StoredFile
+from backend.file_service.models import StoredFile
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent

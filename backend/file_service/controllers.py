@@ -2,8 +2,8 @@ from fastapi import HTTPException
 from fastapi import File, Form, UploadFile
 from fastapi.responses import FileResponse
 from starlette import status
-from src.schemas import FileItem, FileUpdate
-from src.service import (
+from backend.file_service.models import FileItem, FileUpdate
+from backend.file_service.service import (
     create_file,
     delete_file,
     get_file,
@@ -11,7 +11,7 @@ from src.service import (
     update_file,
     STORAGE_DIR,
 )
-from src.tasks import scan_file_for_threats
+from backend.tasks import scan_file_for_threats
 from backend.file_service.routers import file_router
 
 

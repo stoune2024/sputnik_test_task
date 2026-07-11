@@ -1,5 +1,5 @@
-from src.schemas import AlertItem
-from src.service import (
+from backend.alert_service.models import AlertItem
+from backend.alert_service.service import (
     list_alerts,
 )
 from backend.alert_service.routers import alert_router

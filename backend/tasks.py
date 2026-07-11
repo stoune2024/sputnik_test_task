@@ -3,8 +3,9 @@ import os
 from pathlib import Path
 from celery import Celery
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
-from src.models import Alert, StoredFile
-from src.service import STORAGE_DIR, DB_URL
+from backend.schemas import Alert, StoredFile
+from backend.file_service.service import STORAGE_DIR
+from backend.repository import DB_URL
 
 REDIS_URL = os.environ.get("REDIS_URL", "redis://backend-redis:6379/0")
 _worker_loop: asyncio.AbstractEventLoop | None = None
