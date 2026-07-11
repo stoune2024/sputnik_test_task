@@ -2,13 +2,22 @@ import asyncio
 import os
 from pathlib import Path
 from celery import Celery
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from backend.schemas import Alert, StoredFile
 from backend.file_service.service import STORAGE_DIR
-from backend.repository import DB_URL
+from backend.repository import async_session_maker
+from enum import Enum
 
 REDIS_URL = os.environ.get("REDIS_URL", "redis://backend-redis:6379/0")
 _worker_loop: asyncio.AbstractEventLoop | None = None
+
+
+class TaskStatus(Enum):
+    processing = "processing"
+    uploaded = "uploaded"
+    processed = "processed"
+    failed = "failed"
+    suspicious = "suspicious"
+    clean = "clean"
 
 
 def run_in_worker_loop(coroutine):
@@ -20,8 +29,6 @@ def run_in_worker_loop(coroutine):
 
 
 celery_app = Celery("file_tasks", broker=REDIS_URL, backend=REDIS_URL)
-engine = create_async_engine(DB_URL)
-async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
 
 
 async def _scan_file_for_threats(file_id: str) -> None:
@@ -30,7 +37,7 @@ async def _scan_file_for_threats(file_id: str) -> None:
         if not file_item:
             return
 
-        file_item.processing_status = "processing"
+        file_item.processing_status = TaskStatus.processing
         reasons: list[str] = []
         extension = Path(file_item.original_name).suffix.lower()
 
@@ -46,7 +53,7 @@ async def _scan_file_for_threats(file_id: str) -> None:
         }:
             reasons.append("pdf extension does not match mime type")
 
-        file_item.scan_status = "suspicious" if reasons else "clean"
+        file_item.scan_status = TaskStatus.suspicious if reasons else TaskStatus.clean
         file_item.scan_details = ", ".join(reasons) if reasons else "no threats found"
         file_item.requires_attention = bool(reasons)
         await session.commit()
@@ -62,8 +69,8 @@ async def _extract_file_metadata(file_id: str) -> None:
 
         stored_path = STORAGE_DIR / file_item.stored_name
         if not stored_path.exists():
-            file_item.processing_status = "failed"
-            file_item.scan_status = file_item.scan_status or "failed"
+            file_item.processing_status = TaskStatus.failed
+            file_item.scan_status = file_item.scan_status or TaskStatus.failed
             file_item.scan_details = "stored file not found during metadata extraction"
             await session.commit()
             send_file_alert.delay(file_id)
@@ -84,7 +91,7 @@ async def _extract_file_metadata(file_id: str) -> None:
             metadata["approx_page_count"] = max(content.count(b"/Type /Page"), 1)
 
         file_item.metadata_json = metadata
-        file_item.processing_status = "processed"
+        file_item.processing_status = TaskStatus.processed
         await session.commit()
 
     send_file_alert.delay(file_id)
@@ -96,7 +103,7 @@ async def _send_file_alert(file_id: str) -> None:
         if not file_item:
             return
 
-        if file_item.processing_status == "failed":
+        if file_item.processing_status == TaskStatus.failed:
             alert = Alert(
                 file_id=file_id, level="critical", message="File processing failed"
             )
