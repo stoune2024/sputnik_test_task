@@ -115,3 +115,17 @@ alert
 
 Однако, для фоновых задач Celery по прежнему создаем отдельную сессию. Так как это уже другой процесс
 
+**Запуск:**
+
+docker compose -f docker-compose.dev.yml up
+
+docker exec -it backend alembic upgrade head
+
+**Открыть фронт:** http://localhost:3000/test
+
+**Открыть бэк:** http://localhost:8000/docs
+
+
+
+
+PS фронт не трогал

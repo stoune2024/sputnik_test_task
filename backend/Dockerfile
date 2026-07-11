@@ -6,8 +6,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     UV_PROJECT_ENVIRONMENT=/usr/local
 WORKDIR /backend
 
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml uv.lock repository.py schemas.py tasks.py ./
+COPY alert_service ./alert_service
+COPY file_service ./file_service
+
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 RUN uv sync --locked
 
-COPY src ./src
